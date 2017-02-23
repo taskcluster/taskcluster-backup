@@ -7,7 +7,6 @@ defaults:
 
   s3:
     bucket: !env BUCKET
-    expiry: !env EXPIRY
 
   taskcluster:
     credentials:
@@ -22,7 +21,6 @@ production:
 
   s3:
     bucket: 'taskcluster-backups'
-    expiry: '2 weeks'
 
 test:
   concurrency: 30
