@@ -1,11 +1,28 @@
 defaults:
-  tables: []
+  ignore:
+    accounts: !env:list IGNORE_ACCOUNTS
+    tables: !env:list IGNORE_TABLES
+
+  concurrency: !env CONCURRENCY
 
   s3:
-    bucket: 'taskcluster-backups'
-    expiry: '2 weeks'
+    bucket: !env BUCKET
+    expiry: !env EXPIRY
 
   taskcluster:
     credentials:
       clientId:       !env TASKCLUSTER_CLIENT_ID
       accessToken:    !env TASKCLUSTER_ACCESS_TOKEN
+
+production:
+  ignore:
+    accounts: [jungle]
+    tables: []
+  concurrency: 30
+
+  s3:
+    bucket: 'taskcluster-backups'
+    expiry: '2 weeks'
+
+test:
+  concurrency: 30

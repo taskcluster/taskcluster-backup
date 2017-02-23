@@ -1,9 +1,12 @@
+let _ = require('lodash');
+let Promise = require('bluebird');
 let AWS = require('aws-sdk');
 let zstd = require('node-zstd');
 let azure = require('fast-azure-storage');
 let config = require('typed-env-config');
 let loader = require('taskcluster-lib-loader');
 let taskcluster = require('taskcluster-client');
+let chalk = require('chalk');
 
 let load = loader({
   cfg: {
@@ -37,47 +40,61 @@ let load = loader({
         credentials: (await auth.awsS3Credentials('read-write', cfg.s3.bucket, '')).credentials,
       });
 
-      cfg.tables.map(async pair => {
-        console.log('Beginning backing up of ' + pair);
-        let stream = new zstd.compressStream();
+      let accounts = _.difference((await auth.azureAccounts()).accounts, cfg.ignore.accounts);
 
-        let [accountId, tableName] = pair.split('/');
-        let table = new azure.Table({
-          accountId,
-          sas: async _ => {
-            return (await auth.azureTableSAS(accountId, tableName)).sas;
-          },
-        });
 
-        let upload =  s3.upload({
-          Bucket: cfg.s3.bucket,
-          Key: `${accountId}/${tableName}/${taskcluster.fromNow().toJSON()}`,
-          Body: stream,
-          Expires: expires,
-        }).promise();
+      let colors = ['red', 'blue', 'green', 'yellow'];
+      let glyphs = '☀☁☂★☆☉☘☢♔♕♖♗♘⚑';
+      let symbols = _.shuffle(_.flatMap(glyphs, s => colors.map(c => [c, s])));
 
-        let processEntities = entities => entities.map(entity => {
-          stream.write(JSON.stringify(entity));
-        });
+      await Promise.each(accounts, async account => {
+        console.log('\nBeginning backup of: ' + account);
 
-        let results = await table.queryEntities(tableName);
-        processEntities(results.entities);
-        while (true) {
-          results = await table.queryEntities(tableName, {
-            nextPartitionKey: results.nextPartitionKey,
-            nextRowKey: results.nextRowKey
-          });
-          processEntities(results.entities);
-          if (!results.nextPartitionKey || !results.nextRowKey) {
+        let accountParams = {};
+        do {
+          let resp = await auth.azureTables(account, accountParams);
+          accountParams.continuationToken = resp.continuationToken;
+          let tables = _.difference(resp.tables, cfg.ignore.tables)
+          await Promise.map(tables, async (tableName, index) => {
+            let si = symbols[index % symbols.length];
+            let symbol = chalk.bold[si[0]](si[1]);
+            console.log(`\nBeginning backup of: ${account}/${tableName} with symbol ${symbol}`);
+
+            let stream = new zstd.compressStream();
+            let table = new azure.Table({
+              accountId: account,
+              sas: async _ => {
+                return (await auth.azureTableSAS(account, tableName, 'read-only')).sas;
+              },
+            });
+
+            let upload =  s3.upload({
+              Bucket: cfg.s3.bucket,
+              Key: `${account}/${tableName}/${taskcluster.fromNow().toJSON()}`,
+              Body: stream,
+              Expires: expires,
+            }).promise();
+
+            let processEntities = entities => entities.map(entity => {
+              stream.write(JSON.stringify(entity));
+            });
+
+            let tableParams = {};
+            do {
+              let results = await table.queryEntities(tableName, tableParams);
+              tableParams = _.pick(results, ['nextPartitionKey', 'nextRowKey']);
+              process.stdout.write(chalk['green'](symbol));
+            } while (tableParams.nextPartitionKey && tableParams.nextRowKey);
+
             stream.end();
-            break;
-          }
-        }
+            await upload;
+            console.log('\nFinishing backup of: ' + account + '/' + tableName);
+          }, {concurrency: cfg.concurrency});
+        } while (accountParams.continuationToken);
 
-        await upload;
-        console.log('Finished backing up ' + pair);
+        console.log('\nFinishing backup of: ' + account);
       });
-      console.log('Backup Complete!');
+      console.log('\nFinished backup.');
     },
   },
 }, ['profile', 'process']);
