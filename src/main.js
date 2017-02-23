@@ -34,31 +34,30 @@ let load = loader({
   backup: {
     requires: ['cfg', 'auth'],
     setup: async ({cfg, auth}) => {
-      let expires = taskcluster.fromNow(cfg.s3.expires);
-      console.log('Beginning backup. All results set to expire at ' + expires);
+      console.log('Beginning backup.');
       let s3 = new AWS.S3({
         credentials: (await auth.awsS3Credentials('read-write', cfg.s3.bucket, '')).credentials,
       });
 
       let accounts = _.difference((await auth.azureAccounts()).accounts, cfg.ignore.accounts);
 
-
       let colors = ['red', 'blue', 'green', 'yellow'];
       let glyphs = '☀☁☂★☆☉☘☢♔♕♖♗♘⚑';
       let symbols = _.shuffle(_.flatMap(glyphs, s => colors.map(c => [c, s])));
 
       await Promise.each(accounts, async account => {
-        console.log('\nBeginning backup of: ' + account);
+        console.log('\nBeginning backup of ' + account);
 
         let accountParams = {};
         do {
           let resp = await auth.azureTables(account, accountParams);
           accountParams.continuationToken = resp.continuationToken;
-          let tables = _.difference(resp.tables, cfg.ignore.tables)
+          let ignoreTables = cfg.ignore.tables.filter(table => table.startsWith(account + '/'))
+          let tables = _.difference(resp.tables, ignoreTables.map(table => table.split('/')[1]));
           await Promise.map(tables, async (tableName, index) => {
             let si = symbols[index % symbols.length];
             let symbol = chalk.bold[si[0]](si[1]);
-            console.log(`\nBeginning backup of: ${account}/${tableName} with symbol ${symbol}`);
+            console.log(`\nBeginning backup of ${account}/${tableName} with symbol ${symbol}`);
 
             let stream = new zstd.compressStream();
             let table = new azure.Table({
@@ -68,11 +67,14 @@ let load = loader({
               },
             });
 
+            // Versioning is enabled in the backups bucket so we just overwrite the
+            // previous backup every time. The bucket is configured to delete previous
+            // versions after N days, but the current version will never be deleted.
             let upload =  s3.upload({
               Bucket: cfg.s3.bucket,
-              Key: `${account}/${tableName}/${taskcluster.fromNow().toJSON()}`,
+              Key: `${account}/${tableName}`,
               Body: stream,
-              Expires: expires,
+              StorageClass: 'STANDARD_IA',
             }).promise();
 
             let processEntities = entities => entities.map(entity => {
@@ -88,11 +90,11 @@ let load = loader({
 
             stream.end();
             await upload;
-            console.log('\nFinishing backup of: ' + account + '/' + tableName);
+          console.log('\nFinishing backup of ' + account + '/' + tableName);
           }, {concurrency: cfg.concurrency});
         } while (accountParams.continuationToken);
 
-        console.log('\nFinishing backup of: ' + account);
+        console.log('\nFinishing backup of ' + account);
       });
       console.log('\nFinished backup.');
     },
