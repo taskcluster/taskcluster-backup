@@ -1,5 +1,5 @@
 {
-  "name": "taskcluster-azure-table-backup",
+  "name": "taskcluster-backup",
   "version": "1.0.0",
   "author": "Brian Stack <bstack@mozilla.com>",
   "private": true,
