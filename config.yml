@@ -14,9 +14,6 @@ defaults:
       accessToken:    !env TASKCLUSTER_ACCESS_TOKEN
 
 production:
-  ignore:
-    accounts: [jungle]
-    tables: []
   concurrency: 30
 
   s3:
