@@ -35,6 +35,8 @@ let load = loader({
     requires: ['cfg', 'auth'],
     setup: async ({cfg, auth}) => {
       console.log('Beginning backup.');
+      console.log('Ignoring accounts: ' + cfg.ignore.accounts);
+      console.log('Ignoring tables: ' + cfg.ignore.tables);
       let s3 = new AWS.S3({
         credentials: (await auth.awsS3Credentials('read-write', cfg.s3.bucket, '')).credentials,
       });
