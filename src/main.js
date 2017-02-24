@@ -24,7 +24,7 @@ let load = loader({
         });
       } else {
         auth = new taskcluster.Auth({
-          baseUrl: 'taskcluster/auth/'
+          baseUrl: 'taskcluster/auth/v1/'
         });
       }
       return auth;
