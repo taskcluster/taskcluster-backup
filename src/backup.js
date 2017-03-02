@@ -5,22 +5,37 @@ let zstd = require('node-zstd');
 let azure = require('fast-azure-storage');
 let chalk = require('chalk');
 
-let getAccounts = async (auth, ignored) => {
-  let accounts = (await auth.azureAccounts()).accounts;
+let getAccounts = async (auth, included, ignored) => {
+  let accounts = included;
+  if (accounts.length === 0) {
+    console.log('No accounts in config. Loading accounts from auth service...');
+    accounts = (await auth.azureAccounts()).accounts;
+  }
   console.log(`Full list of available accounts: ${JSON.stringify(accounts)}`);
   let extraIgnored = _.difference(ignored, accounts);
   if (extraIgnored.length !== 0) {
-    console.log(`Ignored acccounts ${JSON.stringify(extraIgnored)} are not accounts. Aborting.`);
+    console.log(`Ignored acccounts ${JSON.stringify(extraIgnored)} are not in set ${JSON.stringify(accounts)}. Aborting.`);
     process.exit(1);
   }
   return _.difference(accounts, ignored);
 };
 
-let filterTables = (account, tables, ignored) => {
+let getTables = async (auth, account, included, ignored) => {
+  let tables = included.map(table => table.split('/')[1]);
+  if (tables.length === 0) {
+    console.log('No tables in config. Loading tables from auth service...');
+    let accountParams = {};
+    do {
+      let resp = await auth.azureTables(account, accountParams);
+      accountParams.continuationToken = resp.continuationToken;
+      tables = tables.concat(resp.tables);
+    } while (accountParams.continuationToken);
+  }
+
   let ignoreTables = ignored.filter(table => table.startsWith(account + '/')).map(table => table.split('/')[1]);
   let extraIgnored = _.difference(ignoreTables, tables);
   if (extraIgnored.length !== 0) {
-    console.log(`Ignored tables ${JSON.stringify(extraIgnored)} are not tables in ${account}. Aborting.`);
+    console.log(`Ignored tables ${JSON.stringify(extraIgnored)} are not tables in ${JSON.stringify(tables)}. Aborting.`);
     process.exit(1);
   }
   return _.difference(tables, ignoreTables);
@@ -38,66 +53,59 @@ let chooseSymbol = (index, symbols) => {
 };
 
 module.exports = {
-  run: async ({cfg, auth}) => {
+  run: async ({cfg, auth, include, ignore}) => {
     console.log('Beginning backup.');
-    console.log('Ignoring accounts: ' + JSON.stringify(cfg.ignore.accounts));
-    console.log('Ignoring tables: ' + JSON.stringify(cfg.ignore.tables));
+    console.log('Ignoring accounts: ' + JSON.stringify(ignore.accounts));
+    console.log('Ignoring tables: ' + JSON.stringify(ignore.tables));
+
+    let symbols = setupSymbols();
 
     let s3 = new AWS.S3({
       credentials: (await auth.awsS3Credentials('read-write', cfg.s3.bucket, '')).credentials,
     });
 
-    let accounts = await getAccounts(auth, cfg.ignore.accounts);
-    let symbols = setupSymbols();
-
-    await Promise.each(accounts, async account => {
+    await Promise.each(await getAccounts(auth, cfg.include.accounts, cfg.ignore.accounts), async account => {
       console.log('\nBeginning backup of ' + account);
 
-      let accountParams = {};
-      do {
-        let resp = await auth.azureTables(account, accountParams);
-        accountParams.continuationToken = resp.continuationToken;
-        let tables = filterTables(account, resp.tables, cfg.ignore.tables);
+      let tables = await getTables(auth, account, include.tables, ignore.tables);
+      await Promise.map(tables, async (tableName, index) => {
+        let symbol = chooseSymbol(index, symbols);
+        console.log(`\nBeginning backup of ${account}/${tableName} with symbol ${symbol}`);
 
-        await Promise.map(tables, async (tableName, index) => {
-          let symbol = chooseSymbol(index, symbols);
-          console.log(`\nBeginning backup of ${account}/${tableName} with symbol ${symbol}`);
+        let stream = new zstd.compressStream();
 
-          let stream = new zstd.compressStream();
+        let table = new azure.Table({
+          accountId: account,
+          sas: async _ => {
+            return (await auth.azureTableSAS(account, tableName, 'read-only')).sas;
+          },
+        });
 
-          let table = new azure.Table({
-            accountId: account,
-            sas: async _ => {
-              return (await auth.azureTableSAS(account, tableName, 'read-only')).sas;
-            },
-          });
+        // Versioning is enabled in the backups bucket so we just overwrite the
+        // previous backup every time. The bucket is configured to delete previous
+        // versions after N days, but the current version will never be deleted.
+        let upload = s3.upload({
+          Bucket: cfg.s3.bucket,
+          Key: `${account}/${tableName}`,
+          Body: stream,
+          StorageClass: 'STANDARD_IA',
+        }).promise();
 
-          // Versioning is enabled in the backups bucket so we just overwrite the
-          // previous backup every time. The bucket is configured to delete previous
-          // versions after N days, but the current version will never be deleted.
-          let upload = s3.upload({
-            Bucket: cfg.s3.bucket,
-            Key: `${account}/${tableName}`,
-            Body: stream,
-            StorageClass: 'STANDARD_IA',
-          }).promise();
+        let processEntities = entities => entities.map(entity => {
+          stream.write(JSON.stringify(entity));
+        });
 
-          let processEntities = entities => entities.map(entity => {
-            stream.write(JSON.stringify(entity));
-          });
+        let tableParams = {};
+        do {
+          let results = await table.queryEntities(tableName, tableParams);
+          tableParams = _.pick(results, ['nextPartitionKey', 'nextRowKey']);
+          process.stdout.write(symbol);
+        } while (tableParams.nextPartitionKey && tableParams.nextRowKey);
 
-          let tableParams = {};
-          do {
-            let results = await table.queryEntities(tableName, tableParams);
-            tableParams = _.pick(results, ['nextPartitionKey', 'nextRowKey']);
-            process.stdout.write(symbol);
-          } while (tableParams.nextPartitionKey && tableParams.nextRowKey);
-
-          stream.end();
-          await upload;
-          console.log(`\nFinishing backup of ${account}/${tableName} (${symbol})`);
-        }, {concurrency: cfg.concurrency});
-      } while (accountParams.continuationToken);
+        stream.end();
+        await upload;
+        console.log(`\nFinishing backup of ${account}/${tableName} (${symbol})`);
+      }, {concurrency: cfg.concurrency});
 
       console.log(`\nFinishing backup of ${account}`);
     });

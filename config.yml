@@ -1,4 +1,15 @@
 defaults:
+
+  # If no includes are specified, we
+  # pull the full list of managed tables from
+  # the auth service
+  include:
+    accounts: !env:list INCLUDE_ACCOUNTS
+    tables: !env:list INCLUDE_TABLES
+
+  # Once we have a list of accounts/tables
+  # we can exclude ones we don't want to bother
+  # with for whatever reason
   ignore:
     accounts: !env:list IGNORE_ACCOUNTS
     tables: !env:list IGNORE_TABLES

@@ -28,7 +28,13 @@ let load = loader({
 
   backup: {
     requires: ['cfg', 'auth'],
-    setup: async ({cfg, auth}) => backup.run({cfg, auth}),
+    setup: async ({cfg, auth}) => {
+      cfg.include.accounts = cfg.include.accounts || [];
+      cfg.include.tables = cfg.include.tables || [];
+      cfg.ignore.accounts = cfg.ignore.accounts || [];
+      cfg.ignore.tables = cfg.ignore.tables || [];
+      return await backup.run({cfg, auth, ignore: cfg.ignore, include: cfg.include});
+    },
   },
 }, ['profile', 'process']);
 
