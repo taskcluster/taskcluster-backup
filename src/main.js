@@ -1,12 +1,7 @@
-let _ = require('lodash');
-let Promise = require('bluebird');
-let AWS = require('aws-sdk');
-let zstd = require('node-zstd');
-let azure = require('fast-azure-storage');
 let config = require('typed-env-config');
 let loader = require('taskcluster-lib-loader');
 let taskcluster = require('taskcluster-client');
-let chalk = require('chalk');
+let backup = require('./backup');
 
 let load = loader({
   cfg: {
@@ -33,73 +28,7 @@ let load = loader({
 
   backup: {
     requires: ['cfg', 'auth'],
-    setup: async ({cfg, auth}) => {
-      console.log('Beginning backup.');
-      console.log('Ignoring accounts: ' + cfg.ignore.accounts);
-      console.log('Ignoring tables: ' + cfg.ignore.tables);
-      let s3 = new AWS.S3({
-        credentials: (await auth.awsS3Credentials('read-write', cfg.s3.bucket, '')).credentials,
-      });
-
-      let accounts = _.difference((await auth.azureAccounts()).accounts, cfg.ignore.accounts);
-
-      let colors = ['red', 'blue', 'green', 'yellow'];
-      let glyphs = '☀☁☂★☆☉☘☢♔♕♖♗♘⚑';
-      let symbols = _.shuffle(_.flatMap(glyphs, s => colors.map(c => [c, s])));
-
-      await Promise.each(accounts, async account => {
-        console.log('\nBeginning backup of ' + account);
-
-        let accountParams = {};
-        do {
-          let resp = await auth.azureTables(account, accountParams);
-          accountParams.continuationToken = resp.continuationToken;
-          let ignoreTables = cfg.ignore.tables.filter(table => table.startsWith(account + '/'))
-          let tables = _.difference(resp.tables, ignoreTables.map(table => table.split('/')[1]));
-          await Promise.map(tables, async (tableName, index) => {
-            let si = symbols[index % symbols.length];
-            let symbol = chalk.bold[si[0]](si[1]);
-            console.log(`\nBeginning backup of ${account}/${tableName} with symbol ${symbol}`);
-
-            let stream = new zstd.compressStream();
-            let table = new azure.Table({
-              accountId: account,
-              sas: async _ => {
-                return (await auth.azureTableSAS(account, tableName, 'read-only')).sas;
-              },
-            });
-
-            // Versioning is enabled in the backups bucket so we just overwrite the
-            // previous backup every time. The bucket is configured to delete previous
-            // versions after N days, but the current version will never be deleted.
-            let upload =  s3.upload({
-              Bucket: cfg.s3.bucket,
-              Key: `${account}/${tableName}`,
-              Body: stream,
-              StorageClass: 'STANDARD_IA',
-            }).promise();
-
-            let processEntities = entities => entities.map(entity => {
-              stream.write(JSON.stringify(entity));
-            });
-
-            let tableParams = {};
-            do {
-              let results = await table.queryEntities(tableName, tableParams);
-              tableParams = _.pick(results, ['nextPartitionKey', 'nextRowKey']);
-              process.stdout.write(chalk['green'](symbol));
-            } while (tableParams.nextPartitionKey && tableParams.nextRowKey);
-
-            stream.end();
-            await upload;
-          console.log('\nFinishing backup of ' + account + '/' + tableName);
-          }, {concurrency: cfg.concurrency});
-        } while (accountParams.continuationToken);
-
-        console.log('\nFinishing backup of ' + account);
-      });
-      console.log('\nFinished backup.');
-    },
+    setup: async ({cfg, auth}) => backup.run({cfg, auth}),
   },
 }, ['profile', 'process']);
 
