@@ -1,7 +1,6 @@
 let _ = require('lodash');
 let Promise = require('bluebird');
 let zstd = require('node-zstd');
-let azure = require('fast-azure-storage');
 let chalk = require('chalk');
 
 let getAccounts = async (auth, included, ignored) => {
@@ -56,7 +55,7 @@ let chooseSymbol = (index, symbols) => {
 };
 
 module.exports = {
-  run: async ({auth, s3, bucket, include, ignore, concurrency}) => {
+  run: async ({auth, s3, azure, bucket, include, ignore, concurrency}) => {
     console.log('Beginning backup.');
     console.log('Ignoring accounts: ' + JSON.stringify(ignore.accounts));
     console.log('Ignoring tables: ' + JSON.stringify(ignore.tables));
@@ -91,13 +90,14 @@ module.exports = {
         }).promise();
 
         let processEntities = entities => entities.map(entity => {
-          stream.write(JSON.stringify(entity));
+          stream.write(JSON.stringify(entity) + '\n');
         });
 
         let tableParams = {};
         do {
           let results = await table.queryEntities(tableName, tableParams);
           tableParams = _.pick(results, ['nextPartitionKey', 'nextRowKey']);
+          processEntities(results.entities);
           process.stdout.write(symbol);
         } while (tableParams.nextPartitionKey && tableParams.nextRowKey);
 

@@ -2,6 +2,7 @@ let AWS = require('aws-sdk');
 let config = require('typed-env-config');
 let loader = require('taskcluster-lib-loader');
 let taskcluster = require('taskcluster-client');
+let azure = require('fast-azure-storage');
 let backup = require('./backup');
 
 let load = loader({
@@ -46,6 +47,7 @@ let load = loader({
       return await backup.run({
         auth,
         s3,
+        azure,
         bucket: cfg.s3.bucket,
         ignore: cfg.ignore,
         include: cfg.include,
