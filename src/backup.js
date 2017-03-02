@@ -1,6 +1,5 @@
 let _ = require('lodash');
 let Promise = require('bluebird');
-let AWS = require('aws-sdk');
 let zstd = require('node-zstd');
 let azure = require('fast-azure-storage');
 let chalk = require('chalk');
@@ -14,14 +13,16 @@ let getAccounts = async (auth, included, ignored) => {
   console.log(`Full list of available accounts: ${JSON.stringify(accounts)}`);
   let extraIgnored = _.difference(ignored, accounts);
   if (extraIgnored.length !== 0) {
-    console.log(`Ignored acccounts ${JSON.stringify(extraIgnored)} are not in set ${JSON.stringify(accounts)}. Aborting.`);
+    console.log(`
+      Ignored acccounts ${JSON.stringify(extraIgnored)} are not in set ${JSON.stringify(accounts)}. Aborting.
+    `);
     process.exit(1);
   }
   return _.difference(accounts, ignored);
 };
 
 let getTables = async (auth, account, included, ignored) => {
-  let tables = included.map(table => table.split('/')[1]);
+  let tables = included.filter(table => table.startsWith(account + '/')).map(table => table.split('/')[1]);
   if (tables.length === 0) {
     console.log('No tables in config. Loading tables from auth service...');
     let accountParams = {};
@@ -35,7 +36,9 @@ let getTables = async (auth, account, included, ignored) => {
   let ignoreTables = ignored.filter(table => table.startsWith(account + '/')).map(table => table.split('/')[1]);
   let extraIgnored = _.difference(ignoreTables, tables);
   if (extraIgnored.length !== 0) {
-    console.log(`Ignored tables ${JSON.stringify(extraIgnored)} are not tables in ${JSON.stringify(tables)}. Aborting.`);
+    console.log(`
+      Ignored tables ${JSON.stringify(extraIgnored)} are not tables in ${JSON.stringify(tables)}. Aborting.
+    `);
     process.exit(1);
   }
   return _.difference(tables, ignoreTables);
@@ -53,18 +56,14 @@ let chooseSymbol = (index, symbols) => {
 };
 
 module.exports = {
-  run: async ({cfg, auth, include, ignore}) => {
+  run: async ({auth, s3, bucket, include, ignore, concurrency}) => {
     console.log('Beginning backup.');
     console.log('Ignoring accounts: ' + JSON.stringify(ignore.accounts));
     console.log('Ignoring tables: ' + JSON.stringify(ignore.tables));
 
     let symbols = setupSymbols();
 
-    let s3 = new AWS.S3({
-      credentials: (await auth.awsS3Credentials('read-write', cfg.s3.bucket, '')).credentials,
-    });
-
-    await Promise.each(await getAccounts(auth, cfg.include.accounts, cfg.ignore.accounts), async account => {
+    await Promise.each(await getAccounts(auth, include.accounts, ignore.accounts), async account => {
       console.log('\nBeginning backup of ' + account);
 
       let tables = await getTables(auth, account, include.tables, ignore.tables);
@@ -85,7 +84,7 @@ module.exports = {
         // previous backup every time. The bucket is configured to delete previous
         // versions after N days, but the current version will never be deleted.
         let upload = s3.upload({
-          Bucket: cfg.s3.bucket,
+          Bucket: bucket,
           Key: `${account}/${tableName}`,
           Body: stream,
           StorageClass: 'STANDARD_IA',
@@ -105,7 +104,7 @@ module.exports = {
         stream.end();
         await upload;
         console.log(`\nFinishing backup of ${account}/${tableName} (${symbol})`);
-      }, {concurrency: cfg.concurrency});
+      }, {concurrency: concurrency});
 
       console.log(`\nFinishing backup of ${account}`);
     });
