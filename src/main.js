@@ -42,8 +42,8 @@ let load = loader({
   },
 
   s3: {
-    requires: ['cfg', 'auth'],
-    setup: async ({cfg, auth}) => {
+    requires: ['cfg', 'auth', 'monitor'],
+    setup: async ({cfg, auth, monitor}) => {
       let credentials;
       if (cfg.restore.s3.accessKeyId && cfg.restore.s3.secretAccessKey) {
         credentials = cfg.restore.s3;
@@ -67,9 +67,9 @@ let load = loader({
         }
         credentials = new Creds();
       }
-      return new AWS.S3({
-        credentials,
-      });
+      let s3 = new AWS.S3({credentials});
+      monitor.patchAWS(s3);
+      return s3;
     },
   },
 
@@ -88,6 +88,7 @@ let load = loader({
         ignore: cfg.ignore,
         include: cfg.include,
         concurrency: cfg.concurrency,
+        monitor,
       });
     },
   },

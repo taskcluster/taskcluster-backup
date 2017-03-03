@@ -44,7 +44,8 @@ let getTables = async (auth, account, included, ignored) => {
 };
 
 module.exports = {
-  run: async ({auth, s3, azure, bucket, include, ignore, concurrency}) => {
+  run: async ({auth, s3, azure, bucket, include, ignore, concurrency, monitor}) => {
+    monitor.count('begin');
     console.log('Beginning backup.');
     console.log('Ignoring accounts: ' + JSON.stringify(ignore.accounts));
     console.log('Ignoring tables: ' + JSON.stringify(ignore.tables));
@@ -57,46 +58,52 @@ module.exports = {
       tables = tables.concat(ts.map(t => [account, t]));
     });
 
-    await Promise.map(tables, async (pair, index) => {
+    monitor.measure('tables', tables.length);
+
+    await monitor.timer('total-backup', Promise.map(tables, async (pair, index) => {
       let [account, tableName] = pair;
-      let symbol = symbols.choose(index);
-      console.log(`\nBeginning backup of ${account}/${tableName} with symbol ${symbol}`);
+      return monitor.timer(`backup-${account}.${tableName}`, async () => {
+        let symbol = symbols.choose(index);
+        console.log(`\nBeginning backup of ${account}/${tableName} with symbol ${symbol}`);
 
-      let stream = new zstd.compressStream();
+        let stream = new zstd.compressStream();
 
-      let table = new azure.Table({
-        accountId: account,
-        sas: async _ => {
-          return (await auth.azureTableSAS(account, tableName, 'read-only')).sas;
-        },
+        let table = new azure.Table({
+          accountId: account,
+          sas: async _ => {
+            return (await auth.azureTableSAS(account, tableName, 'read-only')).sas;
+          },
+        });
+
+        // Versioning is enabled in the backups bucket so we just overwrite the
+        // previous backup every time. The bucket is configured to delete previous
+        // versions after N days, but the current version will never be deleted.
+        let upload = s3.upload({
+          Bucket: bucket,
+          Key: `${account}/${tableName}`,
+          Body: stream,
+          StorageClass: 'STANDARD_IA',
+        }).promise();
+
+        let processEntities = entities => entities.map(entity => {
+          stream.write(JSON.stringify(entity) + '\n');
+        });
+
+        let tableParams = {};
+        do {
+          let results = await table.queryEntities(tableName, tableParams);
+          tableParams = _.pick(results, ['nextPartitionKey', 'nextRowKey']);
+          processEntities(results.entities);
+          process.stdout.write(symbol);
+        } while (tableParams.nextPartitionKey && tableParams.nextRowKey);
+
+        stream.end();
+        await upload;
+        console.log(`\nFinishing backup of ${account}/${tableName} (${symbol})`);
       });
-
-      // Versioning is enabled in the backups bucket so we just overwrite the
-      // previous backup every time. The bucket is configured to delete previous
-      // versions after N days, but the current version will never be deleted.
-      let upload = s3.upload({
-        Bucket: bucket,
-        Key: `${account}/${tableName}`,
-        Body: stream,
-        StorageClass: 'STANDARD_IA',
-      }).promise();
-
-      let processEntities = entities => entities.map(entity => {
-        stream.write(JSON.stringify(entity) + '\n');
-      });
-
-      let tableParams = {};
-      do {
-        let results = await table.queryEntities(tableName, tableParams);
-        tableParams = _.pick(results, ['nextPartitionKey', 'nextRowKey']);
-        processEntities(results.entities);
-        process.stdout.write(symbol);
-      } while (tableParams.nextPartitionKey && tableParams.nextRowKey);
-
-      stream.end();
-      await upload;
-      console.log(`\nFinishing backup of ${account}/${tableName} (${symbol})`);
-    }, {concurrency: concurrency});
+    }, {concurrency: concurrency}));
     console.log('\nFinished backup.');
+    monitor.count('end');
+    await monitor.flush();
   },
 };
