@@ -27,7 +27,7 @@ defaults:
   restore:
     s3:
       # These are optional and will be fetched from standard
-      # aws sdk credentials files if not specified
+      # aws sdk credentials files or tc-auth if not specified
       aws_access_key_id: !env AWS_ACCESS_KEY
       aws_secret_access_key: !env AWS_SECRET_KEY
     azure:

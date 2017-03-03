@@ -74,8 +74,8 @@ let load = loader({
   },
 
   backup: {
-    requires: ['cfg', 'auth', 's3'],
-    setup: async ({cfg, auth, s3}) => {
+    requires: ['cfg', 'auth', 's3', 'monitor'],
+    setup: async ({cfg, auth, s3, monitor}) => {
       cfg.include.accounts = cfg.include.accounts || [];
       cfg.include.tables = cfg.include.tables || [];
       cfg.ignore.accounts = cfg.ignore.accounts || [];
@@ -93,13 +93,14 @@ let load = loader({
   },
 
   restore: {
-    requires: ['cfg'],
-    setup: async ({cfg}) => {
+    requires: ['cfg', 's3'],
+    setup: async ({cfg, s3}) => {
       cfg.include.accounts = cfg.include.accounts || [];
       cfg.include.tables = cfg.include.tables || [];
       cfg.ignore.accounts = cfg.ignore.accounts || [];
       cfg.ignore.tables = cfg.ignore.tables || [];
       return await restore.run({
+        s3,
         bucket: cfg.s3.bucket,
         ignore: cfg.ignore,
         include: cfg.include,
