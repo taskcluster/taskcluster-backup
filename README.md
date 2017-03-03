@@ -6,7 +6,7 @@ A simple backup for taskcluster tables to protect from situations where a bug or
 straightforward in an attempt to avoid bugs.
 
 0. A list of all accounts and tables managed by taskcluster-auth is fetched from that service and any tables we wish to ignore is filtered out.
-0. For each table, we fetch rows using fast-azure-storage in parallel up to a configurable concurrency. Each row is `JSON.stringified` and written to a stream.
+0. For each table in parallel up to a configurable concurrency, we fetch rows using fast-azure-storage. Each row is `JSON.stringified` and written to a stream.
 0. The stream is passed into zstd for compressions and then on to `s3.upload`.
 0. When everything is uploaded, we're done.
 
