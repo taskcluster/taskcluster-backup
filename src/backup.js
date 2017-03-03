@@ -94,7 +94,7 @@ module.exports = {
           let results = await table.queryEntities(tableName, tableParams);
           tableParams = _.pick(results, ['nextPartitionKey', 'nextRowKey']);
           processEntities(results.entities);
-          process.stdout.write(symbol);
+          symbols.write(symbol);
         } while (tableParams.nextPartitionKey && tableParams.nextRowKey);
 
         stream.end();

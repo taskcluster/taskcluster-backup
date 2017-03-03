@@ -19,6 +19,7 @@ let load = loader({
       project: 'taskcluster-backups',
       bailOnUnhandledRejection: true,
       credentials: cfg.taskcluster.credentials,
+      authBaseUrl: 'taskcluster/auth/',
       mock: profile === 'test',
       process,
     }),

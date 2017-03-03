@@ -2,6 +2,7 @@ let _ = require('lodash');
 let chalk = require('chalk');
 
 let symbols;
+let writeIndex = 0;
 
 module.exports = {
   setup: () => {
@@ -16,5 +17,12 @@ module.exports = {
     }
     let si = symbols[index % symbols.length];
     return chalk[si[0]](si[1]);
+  },
+  write: (symbol) => {
+    if (writeIndex++ > 100) {
+      process.stdout.write('\n');
+      writeIndex = 0;
+    };
+    process.stdout.write(symbol);
   },
 };
