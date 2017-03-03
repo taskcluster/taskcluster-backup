@@ -21,8 +21,18 @@ defaults:
 
   taskcluster:
     credentials:
-      clientId:       !env TASKCLUSTER_CLIENT_ID
-      accessToken:    !env TASKCLUSTER_ACCESS_TOKEN
+      clientId: !env TASKCLUSTER_CLIENT_ID
+      accessToken: !env TASKCLUSTER_ACCESS_TOKEN
+
+  restore:
+    s3:
+      # These are optional and will be fetched from standard
+      # aws sdk credentials files if not specified
+      aws_access_key_id: !env AWS_ACCESS_KEY
+      aws_secret_access_key: !env AWS_SECRET_KEY
+    azure:
+      accountName: !env AZURE_ACCOUNT_NAME
+      accountKey: !env AZURE_ACCOUNT_KEY
 
 production:
   concurrency: 30

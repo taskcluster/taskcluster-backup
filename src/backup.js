@@ -1,7 +1,7 @@
 let _ = require('lodash');
 let Promise = require('bluebird');
 let zstd = require('node-zstd');
-let chalk = require('chalk');
+let symbols = require('./symbols');
 
 let getAccounts = async (auth, included, ignored) => {
   let accounts = included;
@@ -43,24 +43,13 @@ let getTables = async (auth, account, included, ignored) => {
   return _.difference(tables, ignoreTables);
 };
 
-let setupSymbols = () => {
-  let colors = ['red', 'blue', 'green', 'yellow'];
-  let glyphs = '⚀∅⚁®⚂©⚃℗⚄❀☀☁☂♩❖♫★☆☉☘☢✪♔♕♖♗♘⚑';
-  return _.flatMap(glyphs, s => colors.map(c => [c, s]));
-};
-
-let chooseSymbol = (index, symbols) => {
-  let si = symbols[index % symbols.length];
-  return chalk[si[0]](si[1]);
-};
-
 module.exports = {
   run: async ({auth, s3, azure, bucket, include, ignore, concurrency}) => {
     console.log('Beginning backup.');
     console.log('Ignoring accounts: ' + JSON.stringify(ignore.accounts));
     console.log('Ignoring tables: ' + JSON.stringify(ignore.tables));
 
-    let symbols = setupSymbols();
+    symbols.setup();
     let tables = [];
 
     await Promise.each(await getAccounts(auth, include.accounts, ignore.accounts), async account => {
@@ -70,7 +59,7 @@ module.exports = {
 
     await Promise.map(tables, async (pair, index) => {
       let [account, tableName] = pair;
-      let symbol = chooseSymbol(index, symbols);
+      let symbol = symbols.choose(index);
       console.log(`\nBeginning backup of ${account}/${tableName} with symbol ${symbol}`);
 
       let stream = new zstd.compressStream();

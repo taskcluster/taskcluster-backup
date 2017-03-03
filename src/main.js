@@ -4,6 +4,7 @@ let loader = require('taskcluster-lib-loader');
 let taskcluster = require('taskcluster-client');
 let azure = require('fast-azure-storage');
 let backup = require('./backup');
+let restore = require('./restore');
 
 let load = loader({
   cfg: {
@@ -31,8 +32,14 @@ let load = loader({
   s3: {
     requires: ['cfg', 'auth'],
     setup: async ({cfg, auth}) => {
+      let credentials;
+      if (cfg.restore.s3.accessKeyId && cfg.restore.s3.secretAccessKey) {
+        credentials = cfg.restore.s3;
+      } else {
+        credentials = (await auth.awsS3Credentials('read-write', cfg.s3.bucket, '')).credentials;
+      }
       return new AWS.S3({
-        credentials: (await auth.awsS3Credentials('read-write', cfg.s3.bucket, '')).credentials,
+        credentials,
       });
     },
   },
@@ -48,6 +55,22 @@ let load = loader({
         auth,
         s3,
         azure,
+        bucket: cfg.s3.bucket,
+        ignore: cfg.ignore,
+        include: cfg.include,
+        concurrency: cfg.concurrency,
+      });
+    },
+  },
+
+  restore: {
+    requires: ['cfg'],
+    setup: async ({cfg}) => {
+      cfg.include.accounts = cfg.include.accounts || [];
+      cfg.include.tables = cfg.include.tables || [];
+      cfg.ignore.accounts = cfg.ignore.accounts || [];
+      cfg.ignore.tables = cfg.ignore.tables || [];
+      return await restore.run({
         bucket: cfg.s3.bucket,
         ignore: cfg.ignore,
         include: cfg.include,

@@ -24,6 +24,8 @@ Restore
 
 This is a somewhat simpler operation than backup because it takes AWS and Azure creds directly instead of going through taskcluster-auth. This must be this way because in a situation where we're restoring from backup, it is likely that taskcluster-auth is inoperable. Again copy over `user-config-example.yml` to `user-config.yml` and fill out all of the appropriate fields.
 
+You can get AWS creds from the AWS console and get Azure creds by generating SAS creds for the tables from in the Azure console.
+
 ```
 npm run compile && NODE_ENV=production node ./lib/main.js restore
 ```
