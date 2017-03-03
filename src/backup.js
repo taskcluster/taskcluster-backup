@@ -60,6 +60,10 @@ module.exports = {
 
     monitor.measure('tables', tables.length);
 
+    let timedisp = setInterval(_ => {
+      console.log(`\n\nCurrent Time: ${new Date}\n`);
+    }, 60 * 1000);
+
     await monitor.timer('total-backup', Promise.map(tables, async (pair, index) => {
       let [account, tableName] = pair;
       return monitor.timer(`backup-${account}.${tableName}`, async () => {
@@ -105,5 +109,6 @@ module.exports = {
     console.log('\nFinished backup.');
     monitor.count('end');
     await monitor.flush();
+    clearInterval(timedisp);
   },
 };
