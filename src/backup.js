@@ -58,7 +58,7 @@ module.exports = {
       tables = tables.concat(ts.map(t => [account, t]));
     });
 
-    monitor.measure('tables', tables.length);
+    monitor.count('tables', tables.length);
 
     let timedisp = setInterval(_ => {
       console.log(`\n\nCurrent Time: ${new Date}\n`);
