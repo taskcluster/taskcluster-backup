@@ -56,7 +56,7 @@ let mockAzure = {
     // the array.
     queryEntities(tableName, tableParams) {
       let queried = entities[this.account][tableName] || [];
-      let top = tableParams.top || 1000;
+      let top = tableParams.top || 10; // We set this to 10 for testing
       let rowKey = tableParams.nextRowKey || 0;
       let end = top + rowKey;
       let nextRowKey;
@@ -66,7 +66,7 @@ let mockAzure = {
         nextRowKey = end;
       }
       let results = {
-        entities: _.slice(queried, rowKey, end + 1),
+        entities: _.slice(queried, rowKey, end),
       };
       if (nextRowKey) {
         results.nextPartitionKey = 'whatever';

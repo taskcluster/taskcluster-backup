@@ -47,7 +47,7 @@ suite('backup', () => {
       bucket,
       ignore,
       include,
-      concurrency: 1,
+      concurrency: 10,
       monitor,
     });
     _.forEach(shoulds, should => {
@@ -157,6 +157,20 @@ suite('backup', () => {
       include: {accounts: ['abc'], tables: []},
       ignore: {accounts: [], tables: ['abc/fed']},
       shoulds: ['abc/def', 'abc/qed'],
+    });
+  });
+
+  test('big tables', async function() {
+    let bigEntities = {
+      foo: {
+        bar: _.range(1004).map(i => ({baz: `bing-${i}`})),
+      },
+    };
+    return backupTest({
+      entities: bigEntities,
+      include: {accounts: ['foo'], tables: ['foo/bar']},
+      ignore: {accounts: [], tables: []},
+      shoulds: ['foo/bar'],
     });
   });
 });
