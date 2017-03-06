@@ -3,13 +3,14 @@ let Promise = require('promise');
 
 module.exports = {};
 
+let entities = {};
+
 class mockS3 {
   constructor() {
     this.things = {};
   }
 
   upload({Bucket, Key, Body, StorageClass}) {
-
     this.things[Bucket + Key] = Buffer.alloc(0);
     Body.on('data', chunk => {
       this.things[Bucket + Key] = Buffer.concat([this.things[Bucket + Key], chunk]);
@@ -28,29 +29,44 @@ class mockAuth {
   azureTableSAS(account, tableName, level) {
     return {sas: 'foo123'};
   }
+  azureAccounts() {
+    return {accounts: _.keys(entities)};
+  }
+  azureTables(account) {
+    return {tables: _.keys(entities[account])};
+  }
 }
 
-let entities = [];
 let mockAzure = {
-  setEntities(rows) {
-    entities = rows || [];
+  setEntities(account, tableName, rows) {
+    entities[account] = entities[account] || {};
+    entities[account][tableName] = rows || [];
+  },
+  resetEntities() {
+    entities = {};
   },
   Table: class {
+
+    constructor({accountId}) {
+      this.account = accountId;
+    }
+
     // We abuse tableParams.nextRowKey since it is opaque to
     // the consumer anyway and just use it as an index into
     // the array.
     queryEntities(tableName, tableParams) {
+      let queried = entities[this.account][tableName] || [];
       let top = tableParams.top || 1000;
       let rowKey = tableParams.nextRowKey || 0;
       let end = top + rowKey;
       let nextRowKey;
-      if (end > entities.length) {
-        end = entities.length;
+      if (end > queried.length) {
+        end = queried.length;
       } else {
         nextRowKey = end;
       }
       let results = {
-        entities: _.slice(entities, rowKey, end + 1),
+        entities: _.slice(queried, rowKey, end + 1),
       };
       if (nextRowKey) {
         results.nextPartitionKey = 'whatever';
