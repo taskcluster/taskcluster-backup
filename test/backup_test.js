@@ -160,6 +160,17 @@ suite('backup', () => {
     });
   });
 
+  test('nonexistent table ignored', async function() {
+    return backupTest({
+      entities: defaultEntities,
+      include: {accounts: [], tables: []},
+      ignore: {accounts: ['foobarbaz'], tables: []},
+      shoulds: [],
+    }).then(_ => assert(false, 'Did not throw error when bad ignore.')).catch(err => {
+      return assert(err.message.trim().startsWith('Ignored acccounts ["foobarbaz"] are not in set ["abc","aaa"]'));
+    });
+  });
+
   test('big tables', async function() {
     let bigEntities = {
       foo: {

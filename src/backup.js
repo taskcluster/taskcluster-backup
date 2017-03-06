@@ -12,10 +12,9 @@ let getAccounts = async (auth, included, ignored) => {
   console.log(`Full list of available accounts: ${JSON.stringify(accounts)}`);
   let extraIgnored = _.difference(ignored, accounts);
   if (extraIgnored.length !== 0) {
-    console.log(`
+    throw new Error(`
       Ignored acccounts ${JSON.stringify(extraIgnored)} are not in set ${JSON.stringify(accounts)}. Aborting.
     `);
-    process.exit(1);
   }
   return _.difference(accounts, ignored);
 };
@@ -35,10 +34,9 @@ let getTables = async (auth, account, included, ignored) => {
   let ignoreTables = ignored.filter(table => table.startsWith(account + '/')).map(table => table.split('/')[1]);
   let extraIgnored = _.difference(ignoreTables, tables);
   if (extraIgnored.length !== 0) {
-    console.log(`
+    throw new Error(`
       Ignored tables ${JSON.stringify(extraIgnored)} are not tables in ${JSON.stringify(tables)}. Aborting.
     `);
-    process.exit(1);
   }
   return _.difference(tables, ignoreTables);
 };
