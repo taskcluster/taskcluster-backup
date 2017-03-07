@@ -46,8 +46,8 @@ let load = loader({
     requires: ['cfg', 'auth', 'monitor'],
     setup: async ({cfg, auth, monitor}) => {
       let credentials;
-      if (cfg.restore.s3.accessKeyId && cfg.restore.s3.secretAccessKey) {
-        credentials = cfg.restore.s3;
+      if (cfg.restore.aws.accessKeyId && cfg.restore.aws.secretAccessKey) {
+        credentials = cfg.restore.aws;
       } else {
         // We make this creds class to allow refreshing creds in the middle of
         // uploading a large backup
@@ -103,9 +103,10 @@ let load = loader({
       cfg.ignore.tables = cfg.ignore.tables || [];
       return await restore.run({
         s3,
+        azure,
+        azureSAS: cfg.restore.azure.sas,
         bucket: cfg.s3.bucket,
-        ignore: cfg.ignore,
-        include: cfg.include,
+        tables: cfg.restore.tables,
         concurrency: cfg.concurrency,
       });
     },

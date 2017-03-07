@@ -25,14 +25,12 @@ defaults:
       accessToken: !env TASKCLUSTER_ACCESS_TOKEN
 
   restore:
-    s3:
-      # These are optional and will be fetched from standard
-      # aws sdk credentials files or tc-auth if not specified
-      aws_access_key_id: !env AWS_ACCESS_KEY
-      aws_secret_access_key: !env AWS_SECRET_KEY
+    aws:
+      accessKeyId: !env AWS_ACCESS_KEY_ID
+      secretAccessKey: !env AWS_SECRET_ACCESS_KEY
     azure:
-      accountName: !env AZURE_ACCOUNT_NAME
-      accountKey: !env AZURE_ACCOUNT_KEY
+      sas: !env AZURE_SAS
+    tables: []
 
 production:
   concurrency: 30

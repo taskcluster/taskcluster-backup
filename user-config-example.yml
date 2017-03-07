@@ -2,4 +2,48 @@ defaults:
   taskcluster:
     credentials:
       clientId:         '...'
-      accessKey:        '...'
+      accessToken:      '...'
+  s3:
+    bucket: 'taskcluster-backups'
+
+  # Only need to define these if doing a restore
+  restore:
+    aws:
+      accessKeyId: '...'
+      secretAccessKey: '...'
+    azure:
+      sas: '...'
+    tables:
+      - name: 'example-account/example-table'
+        remap: false
+      - name: 'example-account/example-table-2'
+        remap: 'another-account/another-table-name'
+
+  # Uncomment to set a list of things to backup
+  #include:
+  #  accounts:
+  #    - 'taskclusterv1'
+  #  tables:
+  #    - 'taskclusterv1/TaskclusterIntegrationOwners'
+
+  # Uncomment to set a list of things to _not_ backup
+  #ignore:
+  #   accounts:
+  #     - 'taskclusterqueuev1'
+  #     - 'taskclusterindexv1'
+  #     - 'taskclusterv1'
+  #     - 'taskcluster'
+  #     - 'taskclustersecretsv1'
+  #     - 'tcawsprovisioner'
+  #   tables:
+  #     - 'jungle/TestTaskSizeMembers2'
+  #     - 'jungle/LoadTestTasks2'
+  #     - 'jungle/TestWorkerTypes'
+  #     - 'jungle/LoadTestTaskGroupMembers2'
+  #     - 'jungle/LoadTestTaskSizeMembers2'
+  #     - 'jungle/TestTasks'
+  #     - 'jungle/allowedTable'
+  #     - 'jungle/LoadTestTaskGroups2'
+  #     - 'jungle/TestTaskGroupMembers2'
+  #     - 'jungle/TestTasks2'
+  #     - 'jungle/azureEntityTests'
