@@ -10,6 +10,8 @@ straightforward in an attempt to avoid bugs.
 0. The stream is passed into zstd for compressions and then on to `s3.upload`.
 0. When everything is uploaded, we're done.
 
+For instructions on using this within Mozilla, you can view the "Restore Azure Table from Backup" How-To article in the Taskluster space of [Mana](https://mana.mozilla.org).
+
 Backup
 ------
 This is run automatically from [a hook](https://tools.taskcluster.net/hooks/#taskcluster/azure-backup). From there you can configure which
