@@ -1,5 +1,6 @@
 let _ = require('lodash');
 let Promise = require('promise');
+let streamifier = require('streamifier');
 
 module.exports = {};
 
@@ -22,7 +23,15 @@ class mockS3 {
       });
     });
     return {promise: _ => finished};
-  };
+  }
+
+  getObject({Bucket, Key}) {
+    return {
+      createReadStream: () => {
+        return streamifier.createReadStream(this.things[Bucket + Key]);
+      },
+    };
+  }
 }
 
 class mockAuth {
@@ -45,6 +54,14 @@ let mockAzure = {
   resetEntities() {
     entities = {};
   },
+  getEntities() {
+    return entities;
+  },
+  addAccounts(accounts) {
+    _.forEach(accounts, account => {
+      entities[account] = {};
+    });
+  },
   Table: class {
 
     constructor({accountId}) {
@@ -54,7 +71,7 @@ let mockAzure = {
     // We abuse tableParams.nextRowKey since it is opaque to
     // the consumer anyway and just use it as an index into
     // the array.
-    queryEntities(tableName, tableParams) {
+    async queryEntities(tableName, tableParams) {
       let queried = entities[this.account][tableName] || [];
       let top = tableParams.top || 10; // We set this to 10 for testing
       let rowKey = tableParams.nextRowKey || 0;
@@ -73,6 +90,14 @@ let mockAzure = {
         results.nextRowKey = nextRowKey;
       }
       return results;
+    }
+
+    async createTable(tableName) {
+      entities[this.account][tableName] = [];
+    }
+
+    async insertEntity(tableName, entity) {
+      entities[this.account][tableName].push(entity);
     }
   },
 };

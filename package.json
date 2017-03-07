@@ -28,6 +28,7 @@
     "mocha-eslint": "^3.0.1",
     "mz": "^2.6.0",
     "node-zstd": "^2.0.1",
+    "streamifier": "^0.1.1",
     "taskcluster-client": "latest",
     "taskcluster-lib-loader": "^1.1.0",
     "taskcluster-lib-monitor": "4.5.0",

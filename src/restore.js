@@ -13,9 +13,7 @@ module.exports = {
     await Promise.map(tables, async (tableConf, index) => {
       let symbol = symbols.choose(index);
       let {name: objectName, remap} = tableConf;
-      if (!remap) {
-        remap = objectName;
-      }
+      remap = remap || objectName;
       console.log(`\nBeginning restore of ${objectName} to ${remap} with symbol ${symbol}`);
 
       let [accountId, tableName] = remap.split('/');

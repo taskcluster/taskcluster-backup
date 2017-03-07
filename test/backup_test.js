@@ -1,6 +1,4 @@
 suite('backup', () => {
-  let os = require('os');
-  let path = require('path');
   let assert = require('assert');
   let zstd = require('node-zstd');
   let _ = require('lodash');

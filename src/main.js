@@ -97,10 +97,6 @@ let load = loader({
   restore: {
     requires: ['cfg', 's3'],
     setup: async ({cfg, s3}) => {
-      cfg.include.accounts = cfg.include.accounts || [];
-      cfg.include.tables = cfg.include.tables || [];
-      cfg.ignore.accounts = cfg.ignore.accounts || [];
-      cfg.ignore.tables = cfg.ignore.tables || [];
       return await restore.run({
         s3,
         azure,
