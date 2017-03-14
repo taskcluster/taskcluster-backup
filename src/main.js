@@ -6,6 +6,8 @@ let monitor = require('taskcluster-lib-monitor');
 let azure = require('fast-azure-storage');
 let backup = require('./backup');
 let restore = require('./restore');
+let _ = require('lodash');
+let assert = require('assert');
 
 let load = loader({
   cfg: {
@@ -105,6 +107,25 @@ let load = loader({
         tables: cfg.restore.tables,
         concurrency: cfg.concurrency,
       });
+    },
+  },
+
+  verify: {
+    requires: ['cfg', 'auth'],
+    setup: async ({cfg, auth}) => {
+      let [account, tableName] = cfg.verify.src.trim().split('/');
+      let table = new azure.Table({
+        accountId: account,
+        sas: async _ => {
+          return (await auth.azureTableSAS(account, tableName, 'read-only')).sas;
+        },
+      });
+      let tableParams = {};
+      do {
+        let results = await table.queryEntities(tableName, tableParams);
+        tableParams = _.pick(results, ['nextPartitionKey', 'nextRowKey']);
+        results.entities.forEach(ent => console.log(JSON.stringify(ent)));
+      } while (tableParams.nextPartitionKey && tableParams.nextRowKey);
     },
   },
 }, ['profile', 'process']);

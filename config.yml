@@ -32,6 +32,9 @@ defaults:
       sas: !env AZURE_SAS
     tables: []
 
+  verify:
+    src: !env VERIFY_SRC_TABLE
+
 production:
   concurrency: 30
 
