@@ -20,7 +20,7 @@ module.exports = {
 
       let table = new azure.Table({
         accountId,
-        sas: azureSAS,
+        sas: azureSAS.replace(/^\?/, ''),
       });
 
       await table.createTable(tableName).catch(async err => {
