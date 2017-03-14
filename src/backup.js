@@ -104,9 +104,9 @@ module.exports = {
         console.log(`\nFinishing backup of ${account}/${tableName} (${symbol})`);
       });
     }, {concurrency: concurrency}));
-    console.log('\nFinished backup.');
     monitor.count('end');
     await monitor.flush();
     clearInterval(timedisp);
+    console.log('\nFinished backup.');
   },
 };
