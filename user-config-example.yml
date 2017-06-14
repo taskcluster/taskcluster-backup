@@ -6,9 +6,6 @@ defaults:
   s3:
     bucket: 'taskcluster-backups'
 
-  verify:
-    src: '...'
-
   # Only need to define these if doing a restore
   restore:
     aws:
