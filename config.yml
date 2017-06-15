@@ -33,7 +33,9 @@ defaults:
     tables: []
 
   verify:
-    src: !env VERIFY_SRC_TABLE
+    table1: !env VERIFY_TABLE_1
+    table2: !env VERIFY_TABLE_2
+    diffs:  !env:bool VERIFY_DIFFS
 
 production:
   concurrency: 30
