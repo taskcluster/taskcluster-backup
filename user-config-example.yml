@@ -19,6 +19,10 @@ defaults:
       - name: 'example-account/example-table-2'
         remap: 'another-account/another-table-name'
 
+  verify:
+    table1: '...' # e.g. taskclusterv1/TaskclusterGithubBuilds
+    table2: '...'
+
   # Uncomment to set a list of things to backup
   #include:
   #  accounts:

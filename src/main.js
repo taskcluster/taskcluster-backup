@@ -7,7 +7,8 @@ let azure = require('fast-azure-storage');
 let backup = require('./backup');
 let restore = require('./restore');
 let _ = require('lodash');
-let assert = require('assert');
+let jsonpatch = require('fast-json-patch');
+let hash = require('object-hash');
 
 let load = loader({
   cfg: {
@@ -113,19 +114,54 @@ let load = loader({
   verify: {
     requires: ['cfg', 'auth'],
     setup: async ({cfg, auth}) => {
-      let [account, tableName] = cfg.verify.src.trim().split('/');
-      let table = new azure.Table({
-        accountId: account,
-        sas: async _ => {
-          return (await auth.azureTableSAS(account, tableName, 'read-only')).sas;
-        },
-      });
-      let tableParams = {};
-      do {
-        let results = await table.queryEntities(tableName, tableParams);
-        tableParams = _.pick(results, ['nextPartitionKey', 'nextRowKey']);
-        results.entities.forEach(ent => console.log(JSON.stringify(ent)));
-      } while (tableParams.nextPartitionKey && tableParams.nextRowKey);
+      let fetchRows = async (verifyTable) => {
+        let entities = {};
+        let [account, tableName] = verifyTable.trim().split('/');
+        let table = new azure.Table({
+          accountId: account,
+          sas: async _ => {
+            return (await auth.azureTableSAS(account, tableName, 'read-only')).sas;
+          },
+        });
+        let tableParams = {};
+        let removeFields = [
+          'odata.type', // This is the name of the table and so is obviously different
+          'odata.id', // This changes based on the name of the table
+          'odata.etag', // This changes based on azure-specific timestamps
+          'odata.editLink', // This is table specific as well
+          'Timestamp', // This is updated by azure itself, but is not used by taskcluster
+        ];
+        do {
+          let results = await table.queryEntities(tableName, tableParams);
+          tableParams = _.pick(results, ['nextPartitionKey', 'nextRowKey']);
+          results.entities.forEach(ent => {
+            ent = _.omit(ent, removeFields);
+            entities[hash(ent)] = ent;
+          });
+        } while (tableParams.nextPartitionKey && tableParams.nextRowKey);
+        return entities;
+      };
+
+      let diffs = [];
+      let table1 = await fetchRows(cfg.verify.table1, table1);
+      let table2 = await fetchRows(cfg.verify.table2, table2);
+
+      for (let t of _.intersection(_.keys(table1), _.keys(table2))) {
+        let diff = jsonpatch.compare(table1[t], table2[t]);
+        if (diff.length) {
+          diffs.push(diff);
+        }
+      }
+
+      if (cfg.verify.diffs) {
+        console.log(diffs);
+      } else {
+        console.log('To see diffs between objects, run again after setting VERIFY_DIFFS=true');
+      }
+      console.log(`Number of entities in table1: ${_.keys(table1).length}`);
+      console.log(`Number of entities in table2: ${_.keys(table2).length}`);
+      console.log(`Number of entities in table2 not in table1: ${_.keys(table2).length - _.keys(table1).length}`);
+      console.log(`Number of entities that are different between tables: ${diffs.length}`);
     },
   },
 }, ['profile', 'process']);
