@@ -64,6 +64,7 @@ module.exports = {
 
     await monitor.timer('total-backup', Promise.map(tables, async (pair, index) => {
       let [account, tableName] = pair;
+      let count = 0;
       return monitor.timer(`backup-${account}.${tableName}`, async () => {
         let symbol = symbols.choose(index);
         console.log(`\nBeginning backup of ${account}/${tableName} with symbol ${symbol}`);
@@ -97,11 +98,12 @@ module.exports = {
           tableParams = _.pick(results, ['nextPartitionKey', 'nextRowKey']);
           processEntities(results.entities);
           symbols.write(symbol);
+          count += results.entities.length;
         } while (tableParams.nextPartitionKey && tableParams.nextRowKey);
 
         stream.end();
         await upload;
-        console.log(`\nFinishing backup of ${account}/${tableName} (${symbol})`);
+        console.log(`\nFinishing backup of ${account}/${tableName} with ${count} entities (${symbol})`);
       });
     }, {concurrency: concurrency}));
     console.log('\nFinished backup.');
