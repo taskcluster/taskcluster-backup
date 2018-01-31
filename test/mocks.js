@@ -5,6 +5,7 @@ let streamifier = require('streamifier');
 module.exports = {};
 
 let entities = {};
+let containers = {};
 
 class mockS3 {
   constructor() {
@@ -38,11 +39,14 @@ class mockAuth {
   azureTableSAS(account, tableName, level) {
     return {sas: 'foo123'};
   }
-  azureAccounts() {
-    return {accounts: _.keys(entities)};
+  async azureAccounts() {
+    return {accounts: _.uniq(_.keys(entities).concat(_.keys(containers)))};
   }
-  azureTables(account) {
+  async azureTables(account) {
     return {tables: _.keys(entities[account])};
+  }
+  async azureContainers(account) {
+    return {containers: _.keys(containers[account])};
   }
 }
 
@@ -56,6 +60,16 @@ let mockAzure = {
   },
   getEntities() {
     return entities;
+  },
+  setContainers(account, containerName, blobs) {
+    containers[account] = containers[account] || {};
+    containers[account][containerName] = blobs || [];
+  },
+  resetContainers() {
+    containers = {};
+  },
+  getContainers() {
+    return containers;
   },
   addAccounts(accounts) {
     _.forEach(accounts, account => {
@@ -98,6 +112,30 @@ let mockAzure = {
 
     async insertEntity(tableName, entity) {
       entities[this.account][tableName].push(entity);
+    }
+  },
+  Blob: class {
+
+    constructor({accountId}) {
+      this.account = accountId;
+    }
+
+    async listBlobs(containerName, options) {
+      // just return one at a time..
+      let blobs = containers[this.account][containerName] || [];
+      let index = options.marker || 0;
+      return {
+        blobs: [{name: blobs[index].name}],
+        nextMarker: index + 1 < blobs.length ? index + 1 : undefined,
+      };
+    }
+
+    async getBlob(containerName, blobName, options) {
+      let blobs = containers[this.account][containerName] || [];
+      let blob = _.find(blobs, {name: blobName});
+      return {
+        content: blob.content,
+      };
     }
   },
 };

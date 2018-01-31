@@ -35,6 +35,7 @@ suite('restore', () => {
 
   async function restoreTest({entities, resultAccounts, shoulds}) {
     azure.resetEntities();
+    azure.resetContainers();
     azure.addAccounts(resultAccounts);
     _.forEach(entities, (tables, accountId) => {
       _.forEach(tables, (rows, tableName) => {
