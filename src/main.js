@@ -80,11 +80,8 @@ let load = loader({
   backup: {
     requires: ['cfg', 'auth', 's3', 'monitor'],
     setup: async ({cfg, auth, s3, monitor}) => {
-      cfg.include.accounts = cfg.include.accounts || [];
-      cfg.include.tables = cfg.include.tables || [];
-      cfg.ignore.accounts = cfg.ignore.accounts || [];
-      cfg.ignore.tables = cfg.ignore.tables || [];
       return await backup.run({
+        cfg,
         auth,
         s3,
         azure,

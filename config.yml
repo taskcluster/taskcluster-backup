@@ -4,8 +4,12 @@ defaults:
   # pull the full list of managed tables from
   # the auth service
   include:
+    # account names to consider
     accounts: !env:list INCLUDE_ACCOUNTS
+    # tables (in the form "<account>/<table>") to consider
     tables: !env:list INCLUDE_TABLES
+    # containers (in the form "<account>/<container>" to consider
+    containers: !env:list INCLUDE_CONTAINERS
 
   # Once we have a list of accounts/tables
   # we can exclude ones we don't want to bother
@@ -13,6 +17,7 @@ defaults:
   ignore:
     accounts: !env:list IGNORE_ACCOUNTS
     tables: !env:list IGNORE_TABLES
+    containers: !env:list IGNORE_CONTAINERS
 
   concurrency: !env CONCURRENCY
 

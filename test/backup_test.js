@@ -20,6 +20,13 @@ suite('backup', () => {
     },
   };
 
+  let defaultContainers = {
+    abc: {
+      contA: [{name: '1', content: 'aaa1'}, {name: '2', content: 'aaa2'}],
+      contB: [{name: '1', content: 'bbb1'}, {name: '2', content: 'bbb2'}],
+    },
+  };
+
   suiteSetup(async () => {
     s3 = new mocks.s3();
     auth = new mocks.auth();
@@ -31,11 +38,17 @@ suite('backup', () => {
     });
   });
 
-  async function backupTest({entities, include, ignore, shoulds}) {
+  async function backupTest({entities, containers, include, ignore, shoulds}) {
     azure.resetEntities();
-    _.forEach(entities, (tables, accountId) => {
+    _.forEach(entities || {}, (tables, accountId) => {
       _.forEach(tables, (rows, tableName) => {
         azure.setEntities(accountId, tableName, rows);
+      });
+    });
+    azure.resetContainers();
+    _.forEach(containers || {}, (containers, accountId) => {
+      _.forEach(containers, (blobs, containerName) => {
+        azure.setContainers(accountId, containerName, blobs);
       });
     });
     await backup.run({
@@ -49,31 +62,39 @@ suite('backup', () => {
       monitor,
     });
     _.forEach(shoulds, should => {
+      let key = bucket + should;
+      assert(s3.things[key], `${key} not in S3`);
       let results = zstd.decompressSync(s3.things[bucket + should]).toString().split('\n');
       results = _.without(results, ''); // We end up with an extra empty line at the end
-      let [accountId, tableName] = should.split('/');
-      assert.equal(results.length, entities[accountId][tableName].length);
-      results.forEach((res, index) => {
-        assert.deepEqual(entities[accountId][tableName][index], JSON.parse(res));
-      });
+      let [accountId, type, name] = should.split('/');
+      if (type === 'table') {
+        assert.equal(results.length, entities[accountId][name].length);
+        results.forEach((res, index) => {
+          assert.deepEqual(entities[accountId][name][index], JSON.parse(res));
+        });
+      } else {
+        let expected = containers[accountId][name].map(b => _.pick(b, ['content']));
+        assert.equal(results.length, containers[accountId][name].length);
+        assert.deepEqual(results.map(r => JSON.parse(r)), expected);
+      }
     });
   }
 
   test('all', async function() {
     return backupTest({
       entities: defaultEntities,
-      include: {accounts: [], tables: []},
-      ignore: {accounts: [], tables: []},
-      shoulds: ['abc/def', 'abc/fed', 'abc/qed', 'aaa/bbb'],
+      include: {},
+      ignore: {},
+      shoulds: ['abc/table/def', 'abc/table/fed', 'abc/table/qed', 'aaa/table/bbb'],
     });
   });
 
   test('includes account', async function() {
     return backupTest({
       entities: defaultEntities,
-      include: {accounts: ['aaa'], tables: []},
-      ignore: {accounts: [], tables: []},
-      shoulds: ['aaa/bbb'],
+      include: {accounts: ['aaa']},
+      ignore: {},
+      shoulds: ['aaa/table/bbb'],
     });
   });
 
@@ -81,8 +102,18 @@ suite('backup', () => {
     return backupTest({
       entities: defaultEntities,
       include: {accounts: ['abc'], tables: ['abc/qed']},
-      ignore: {accounts: [], tables: []},
-      shoulds: ['abc/qed'],
+      ignore: {},
+      shoulds: ['abc/table/qed'],
+    });
+  });
+
+  test('includes account + containers', async function() {
+    return backupTest({
+      entities: defaultEntities,
+      containers: defaultContainers,
+      include: {accounts: ['abc'], tables: ['abc/qed']},
+      ignore: {},
+      shoulds: ['abc/table/qed', 'abc/container/contA', 'abc/container/contB'],
     });
   });
 
@@ -90,17 +121,17 @@ suite('backup', () => {
     return backupTest({
       entities: defaultEntities,
       include: {accounts: ['abc'], tables: ['abc/qed', 'abc/def']},
-      ignore: {accounts: [], tables: []},
-      shoulds: ['abc/qed', 'abc/def'],
+      ignore: {},
+      shoulds: ['abc/table/qed', 'abc/table/def'],
     });
   });
 
   test('includes accounts', async function() {
     return backupTest({
       entities: defaultEntities,
-      include: {accounts: ['abc', 'aaa'], tables: []},
-      ignore: {accounts: [], tables: []},
-      shoulds: ['abc/def', 'abc/fed', 'abc/qed', 'aaa/bbb'],
+      include: {accounts: ['abc', 'aaa']},
+      ignore: {},
+      shoulds: ['abc/table/def', 'abc/table/fed', 'abc/table/qed', 'aaa/table/bbb'],
     });
   });
 
@@ -108,43 +139,43 @@ suite('backup', () => {
     return backupTest({
       entities: defaultEntities,
       include: {accounts: ['abc', 'aaa'], tables: ['abc/qed', 'aaa/bbb']},
-      ignore: {accounts: [], tables: []},
-      shoulds: ['abc/qed', 'aaa/bbb'],
+      ignore: {},
+      shoulds: ['abc/table/qed', 'aaa/table/bbb'],
     });
   });
 
   test('ignores account', async function() {
     return backupTest({
       entities: defaultEntities,
-      include: {accounts: [], tables: []},
-      ignore: {accounts: ['abc'], tables: []},
-      shoulds: ['aaa/bbb'],
+      include: {},
+      ignore: {accounts: ['abc']},
+      shoulds: ['aaa/table/bbb'],
     });
   });
 
   test('ignores account + table', async function() {
     return backupTest({
       entities: defaultEntities,
-      include: {accounts: [], tables: []},
+      include: {},
       ignore: {accounts: ['aaa'], tables: ['abc/def']},
-      shoulds: ['abc/qed', 'abc/fed'],
+      shoulds: ['abc/table/qed', 'abc/table/fed'],
     });
   });
 
   test('ignores account + tables', async function() {
     return backupTest({
       entities: defaultEntities,
-      include: {accounts: [], tables: []},
+      include: {},
       ignore: {accounts: ['aaa'], tables: ['abc/def', 'abc/qed']},
-      shoulds: ['abc/fed'],
+      shoulds: ['abc/table/fed'],
     });
   });
 
   test('ignores accounts', async function() {
     return backupTest({
       entities: defaultEntities,
-      include: {accounts: [], tables: []},
-      ignore: {accounts: ['abc', 'aaa'], tables: []},
+      include: {},
+      ignore: {accounts: ['abc', 'aaa']},
       shoulds: [],
     });
   });
@@ -152,17 +183,17 @@ suite('backup', () => {
   test('ignores + includes', async function() {
     return backupTest({
       entities: defaultEntities,
-      include: {accounts: ['abc'], tables: []},
-      ignore: {accounts: [], tables: ['abc/fed']},
-      shoulds: ['abc/def', 'abc/qed'],
+      include: {accounts: ['abc']},
+      ignore: {tables: ['abc/fed']},
+      shoulds: ['abc/table/def', 'abc/table/qed'],
     });
   });
 
   test('nonexistent table ignored', async function() {
     return backupTest({
       entities: defaultEntities,
-      include: {accounts: [], tables: []},
-      ignore: {accounts: ['foobarbaz'], tables: []},
+      include: {},
+      ignore: {accounts: ['foobarbaz']},
       shoulds: [],
     }).then(_ => assert(false, 'Did not throw error when bad ignore.')).catch(err => {
       return assert(err.message.trim().startsWith('Ignored acccounts ["foobarbaz"] are not in set ["abc","aaa"]'));
@@ -178,8 +209,8 @@ suite('backup', () => {
     return backupTest({
       entities: bigEntities,
       include: {accounts: ['foo'], tables: ['foo/bar']},
-      ignore: {accounts: [], tables: []},
-      shoulds: ['foo/bar'],
+      ignore: {},
+      shoulds: ['foo/table/bar'],
     });
   });
 });

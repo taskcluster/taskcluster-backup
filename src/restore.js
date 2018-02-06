@@ -12,9 +12,9 @@ module.exports = {
 
     await Promise.map(tables, async (tableConf, index) => {
       let symbol = symbols.choose(index);
-      let {name: objectName, remap} = tableConf;
-      remap = remap || objectName;
-      console.log(`\nBeginning restore of ${objectName} to ${remap} with symbol ${symbol}`);
+      let {name: sourceName, remap} = tableConf;
+      remap = remap || sourceName;
+      console.log(`\nBeginning restore of ${sourceName} to ${remap} with symbol ${symbol}`);
 
       let [accountId, tableName] = remap.split('/');
 
@@ -28,13 +28,14 @@ module.exports = {
           throw err;
         }
         if ((await table.queryEntities(tableName, {top: 1})).entities.length > 0) {
-          throw new Error(`Refusing to backup ${objectName} to ${remap}. ${remap} not empty!`);
+          throw new Error(`Refusing to backup ${sourceName} to ${remap}. ${remap} not empty!`);
         }
       });
 
+      let [sAccountId, sTableName] = sourceName.split('/');
       let fetch = s3.getObject({
         Bucket: bucket,
-        Key: objectName,
+        Key: `${sAccountId}/table/${sTableName}`,
       }).createReadStream().pipe(zstd.decompressStream()).pipe(es.split()).pipe(es.parse());
 
       await new Promise((accept, reject) => {
@@ -50,7 +51,7 @@ module.exports = {
         fetch.on('error', reject);
       });
 
-      console.log(`\nFinished restore of ${objectName} to ${remap} with symbol ${symbol}`);
+      console.log(`\nFinished restore of ${sourceName} to ${remap} with symbol ${symbol}`);
     }, {concurrency: concurrency});
 
     console.log('\nFinished restore.');
