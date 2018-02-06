@@ -32,7 +32,7 @@
     "object-hash": "^1.1.8",
     "streamifier": "^0.1.1",
     "taskcluster-client": "^3.2.0",
-    "taskcluster-lib-loader": "^1.1.0",
+    "taskcluster-lib-loader": "^2.0.0",
     "taskcluster-lib-monitor": "4.5.0",
     "typed-env-config": "^1.1.0"
   },
