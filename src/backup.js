@@ -153,7 +153,7 @@ let backupContainers = async ({cfg, auth, s3, azure, bucket, accounts, include, 
       let container = new azure.Blob({
         accountId: account,
         sas: async _ => {
-          return (await auth.azureBlobSAS(account, containerName, 'read-only')).sas;
+          return (await auth.azureContainerSAS(account, containerName, 'read-only')).sas;
         },
       });
 

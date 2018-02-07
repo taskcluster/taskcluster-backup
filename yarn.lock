@@ -137,8 +137,8 @@ asynckit@^0.4.0:
   resolved "https://registry.yarnpkg.com/asynckit/-/asynckit-0.4.0.tgz#c79ed97f7f34cb8f2ba1bc9790bcc366474b4b79"
 
 aws-sdk@^2.9.0:
-  version "2.189.0"
-  resolved "https://registry.yarnpkg.com/aws-sdk/-/aws-sdk-2.189.0.tgz#4df649b8cfa2008fee09f357fe3a9835465c4da4"
+  version "2.190.0"
+  resolved "https://registry.yarnpkg.com/aws-sdk/-/aws-sdk-2.190.0.tgz#c7b48b3845345b60795943eb919700cf7edf5734"
   dependencies:
     buffer "4.9.1"
     events "^1.1.1"
@@ -787,8 +787,8 @@ commander@2.9.0:
     graceful-readlink ">= 1.0.0"
 
 commander@^2.8.1:
-  version "2.14.0"
-  resolved "https://registry.yarnpkg.com/commander/-/commander-2.14.0.tgz#7b25325963e6aace20d3a9285b09379b0c2208b5"
+  version "2.14.1"
+  resolved "https://registry.yarnpkg.com/commander/-/commander-2.14.1.tgz#2235123e37af8ca3c65df45b026dbd357b01b9aa"
 
 component-emitter@^1.2.0, component-emitter@~1.2.0:
   version "1.2.1"
@@ -2706,8 +2706,8 @@ taskcluster-client@^1.0.1:
     sockjs-client "^1.0.3"
 
 taskcluster-client@^3.2.0:
-  version "3.2.0"
-  resolved "https://registry.yarnpkg.com/taskcluster-client/-/taskcluster-client-3.2.0.tgz#2a12d31587f9bb5a37262d650525c818a5947767"
+  version "3.2.1"
+  resolved "https://registry.yarnpkg.com/taskcluster-client/-/taskcluster-client-3.2.1.tgz#60d6c2dd111e13501e775b92dd5d8398566f7cb3"
   dependencies:
     amqplib "^0.5.1"
     babel-runtime "^6.26.0"
