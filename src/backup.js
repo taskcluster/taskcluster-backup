@@ -171,8 +171,12 @@ let backupContainers = async ({cfg, auth, s3, azure, bucket, accounts, include, 
       do {
         let results = await container.listBlobs(containerName, {marker});
         for (let blob of results.blobs) {
+          // NOTE: this only gets *some* of the data associated with the blob; notably,
+          // it omits properties
+          //   (https://taskcluster.github.io/fast-azure-storage/classes/Blob.html#method-getBlobMetadata)
+          // These are not currently used by the azure-blob-storage library
           let blobInfo = await container.getBlob(containerName, blob.name, {});
-          stream.write(JSON.stringify(blobInfo) + '\n');
+          stream.write(JSON.stringify({name: blob.name, info: blobInfo}) + '\n');
         }
         symbols.write(symbol);
         count += results.blobs.length;

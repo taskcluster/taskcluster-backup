@@ -103,6 +103,7 @@ let load = loader({
         azureSAS: cfg.restore.azure.sas,
         bucket: cfg.s3.bucket,
         tables: cfg.restore.tables,
+        containers: cfg.restore.containers,
         concurrency: cfg.concurrency,
       });
     },
