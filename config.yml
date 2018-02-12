@@ -35,7 +35,10 @@ defaults:
       secretAccessKey: !env AWS_SECRET_ACCESS_KEY
     azure:
       sas: !env AZURE_SAS
-    tables: []
+    tables:
+      # - 'account/tablename'
+    containers:
+      # - 'account/containername'
 
   verify:
     table1: !env VERIFY_TABLE_1

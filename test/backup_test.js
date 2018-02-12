@@ -73,7 +73,7 @@ suite('backup', () => {
           assert.deepEqual(entities[accountId][name][index], JSON.parse(res));
         });
       } else {
-        let expected = containers[accountId][name].map(b => _.pick(b, ['content']));
+        let expected = containers[accountId][name].map(b => ({info: {content: b.content}, name: b.name}));
         assert.equal(results.length, containers[accountId][name].length);
         assert.deepEqual(results.map(r => JSON.parse(r)), expected);
       }
