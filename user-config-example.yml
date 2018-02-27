@@ -18,6 +18,9 @@ defaults:
         remap: false
       - name: 'example-account/example-table-2'
         remap: 'another-account/another-table-name'
+    containers:
+      - name: 'taskclusterauthv1/auth-production-roles'
+        remap: 'jungle/roles-restore'
 
   verify:
     table1: '...' # e.g. taskclusterv1/TaskclusterGithubBuilds
