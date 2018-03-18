@@ -4,8 +4,8 @@ suite('restore', () => {
   let _ = require('lodash');
   let mocks = require('./mocks');
   let Monitor = require('taskcluster-lib-monitor');
-  let backup = require('../lib/backup');
-  let restore = require('../lib/restore');
+  let backup = require('../src/backup');
+  let restore = require('../src/restore');
   let Promise = require('bluebird');
 
   let auth, s3, azure, monitor;
