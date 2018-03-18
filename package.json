@@ -6,6 +6,7 @@
   "description": "Backup azure tables to s3. If all goes well, we can restore as well!",
   "license": "MPL-2.0",
   "scripts": {
+    "lint": "eslint src/*.js test/*.js",
     "compile": "babel-compile -p taskcluster src:lib test:.test",
     "prepublish": "npm run compile",
     "pretest": "npm run compile",
@@ -14,19 +15,15 @@
   "dependencies": {
     "aws-sdk": "^2.9.0",
     "babel-compile": "^2.0.0",
-    "babel-eslint": "^7.1.1",
     "babel-preset-taskcluster": "^3.0.0",
     "babel-runtime": "^6.22.0",
     "bluebird": "^3.4.7",
     "chalk": "^1.1.3",
-    "eslint-config-taskcluster": "^2.0.0",
-    "eslint-plugin-taskcluster": "^1.0.2",
     "event-stream": "^3.3.4",
     "fast-azure-storage": "^2.0.0",
     "fast-json-patch": "^1.2.2",
     "lodash": "^4.17.4",
     "mocha": "^3.2.0",
-    "mocha-eslint": "^3.0.1",
     "mz": "^2.6.0",
     "node-zstd": "^2.0.1",
     "object-hash": "^1.1.8",
@@ -36,5 +33,12 @@
     "taskcluster-lib-monitor": "4.5.0",
     "typed-env-config": "^1.1.0"
   },
-  "main": "lib/main.js"
+  "main": "lib/main.js",
+  "engines": {
+    "node": "^8.0.0",
+    "yarn": "^1.0.0"
+  },
+  "devDependencies": {
+    "eslint-config-taskcluster": "^3.0.0"
+  }
 }
