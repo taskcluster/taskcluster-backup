@@ -4,7 +4,7 @@ suite('backup', () => {
   let _ = require('lodash');
   let mocks = require('./mocks');
   let Monitor = require('taskcluster-lib-monitor');
-  let backup = require('../lib/backup');
+  let backup = require('../src/backup');
 
   let auth, s3, azure, monitor;
   let bucket = 'foo-backup';
