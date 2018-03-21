@@ -13,6 +13,7 @@
     "aws-sdk": "^2.211.0",
     "bluebird": "^3.4.7",
     "chalk": "^2.3.2",
+    "commander": "^2.15.1",
     "event-stream": "^3.3.4",
     "fast-azure-storage": "^2.1.0",
     "fast-json-patch": "^2.0.6",
