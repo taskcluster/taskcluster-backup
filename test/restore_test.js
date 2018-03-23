@@ -7,6 +7,7 @@ suite('restore', () => {
   let backup = require('../src/backup');
   let restore = require('../src/restore');
   let Promise = require('bluebird');
+  let renderer = require('listr-silent-renderer');
 
   let auth, s3, azure, monitor;
   let bucket = 'foo-backup';
@@ -51,6 +52,7 @@ suite('restore', () => {
       include: {accounts: [], tables: []},
       concurrency: 10,
       monitor,
+      renderer,
     });
     await restore.run({
       s3,
@@ -59,6 +61,7 @@ suite('restore', () => {
       bucket,
       tables: shoulds,
       concurrency: 10,
+      renderer,
     });
     return Promise.each(shoulds, async should => {
       let [rAccountId, rTableName] = should.remap.split('/');
