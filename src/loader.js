@@ -9,6 +9,8 @@ let restore = require('./restore');
 let _ = require('lodash');
 let jsonpatch = require('fast-json-patch');
 let hash = require('object-hash');
+let pump = require('pump');
+let {endpoint} = require('./data');
 
 let load = loader({
   cfg: {
@@ -162,6 +164,17 @@ let load = loader({
       console.log(`Number of entities that are different between tables: ${diffs.length}`);
     },
   },
-}, ['profile', 'process']);
+
+  cp: {
+    requires: ['cfg', 'cmdline'],
+    setup: async ({cfg, cmdline: {source, destination}}) => {
+      const src = endpoint(source, cfg);
+      const dst = endpoint(destination, cfg);
+      await new Promise((resolve, reject) => {
+        pump(src.read(), dst.write(), err => err ? reject(err) : resolve());
+      });
+    },
+  },
+}, ['profile', 'process', 'cmdline']);
 
 module.exports = load;

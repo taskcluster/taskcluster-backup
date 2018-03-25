@@ -37,6 +37,21 @@ program.command('verify')
     });
   });
 
+program.command('cp <source> <destination>')
+  .action((source, destination) => {
+    require('./loader')('cp', {
+      process: 'cp',
+      profile,
+      cmdline: {
+        source,
+        destination,
+      },
+    }).catch(err => {
+      console.log(err.stack);
+      process.exit(1);
+    });
+  });
+
 program.command('*', {noHelp: true})
   .action(() => program.help(txt => txt));
 

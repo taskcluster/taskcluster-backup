@@ -1,7 +1,7 @@
 /user-config.yml
 lib/
 .test/
-data/
+/data/
 
 # Logs
 logs
