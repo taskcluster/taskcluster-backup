@@ -1,4 +1,7 @@
 defaults:
+  include:
+    accounts: jungle
+    tables: ['foo', 'bar']
   taskcluster:
     credentials:
       clientId:         '...'

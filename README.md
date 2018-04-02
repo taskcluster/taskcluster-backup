@@ -18,7 +18,7 @@ This is run automatically from [a hook](https://tools.taskcluster.net/hooks/#tas
 accounts/tables to ignore or include with environment variables. The bucket for the backups can be found in the console [here](https://console.aws.amazon.com/s3/buckets/taskcluster-backups). If you want, you can run the backup manually as well. You'll need to copy `user-config-example.yml` to `user-config.yml` and then fill out all of the appropriate fields.
 
 ```
-npm run compile && NODE_ENV=production node ./lib/main.js backup
+./taskcluster-backup backup
 ```
 
 Restore
@@ -29,5 +29,5 @@ This is a somewhat simpler operation than backup because it takes AWS and Azure 
 You can get AWS creds from the AWS console and get Azure creds by generating SAS creds for the tables from in the Azure console.
 
 ```
-npm run compile && NODE_ENV=production node ./lib/main.js restore
+./taskcluster-backup restore
 ```

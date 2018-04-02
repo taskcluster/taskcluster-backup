@@ -5,6 +5,7 @@ suite('backup', () => {
   let mocks = require('./mocks');
   let Monitor = require('taskcluster-lib-monitor');
   let backup = require('../src/backup');
+  let renderer = require('listr-silent-renderer');
 
   let auth, s3, azure, monitor;
   let bucket = 'foo-backup';
@@ -60,6 +61,7 @@ suite('backup', () => {
       include,
       concurrency: 10,
       monitor,
+      renderer,
     });
     _.forEach(shoulds, should => {
       let key = bucket + should;
