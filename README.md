@@ -31,3 +31,21 @@ You can get AWS creds from the AWS console and get Azure creds by generating SAS
 ```
 ./taskcluster-backup restore
 ```
+
+Heroku Settings
+---------------
+
+We do not automatically backup the Heroku settings (application config variables).
+This information must be stored separately from backups, as it contains (among other things) encryption keys without which the backed-up data is useless.
+
+Heroku backups are done by hand:
+
+```shell
+# Install the Heroku CLI (by any means; this is just one) and login
+npm install -g heroku-cli
+heroku login
+
+# dump the config variables; the list of apps is in the script
+# ..and insert into the password store
+./dump heroku-config.sh | pass insert -f -m heroku-config
+```
