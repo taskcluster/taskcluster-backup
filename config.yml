@@ -48,8 +48,13 @@ defaults:
 production:
   concurrency: 30
 
+  monitoring:
+    project: taskcluster-backup
+    enable: true
   s3:
     bucket: 'taskcluster-backups'
 
 test:
   concurrency: 30
+  monitoring:
+    enable: false

@@ -23,7 +23,7 @@
     "streamifier": "^0.1.1",
     "taskcluster-client": "^3.3.0",
     "taskcluster-lib-loader": "^2.0.0",
-    "taskcluster-lib-monitor": "5.1.5",
+    "taskcluster-lib-monitor": "5.4.0",
     "typed-env-config": "^2.0.0"
   },
   "main": "src/main.js",
