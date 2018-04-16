@@ -19,7 +19,8 @@ let load = loader({
   monitor: {
     requires: ['process', 'profile', 'cfg'],
     setup: ({process, profile, cfg}) => monitor({
-      project: 'taskcluster-backups',
+      project: cfg.monitoring.project || 'taskcluster-backups',
+      enable: cfg.monitoring.enable,
       bailOnUnhandledRejection: true,
       credentials: cfg.taskcluster.credentials,
       authBaseUrl: 'taskcluster/auth/v1/',
