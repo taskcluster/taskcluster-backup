@@ -49,7 +49,7 @@ production:
   concurrency: 30
 
   monitoring:
-    project: taskcluster-backup
+    project: taskcluster-backups
     enable: true
   s3:
     bucket: 'taskcluster-backups'
