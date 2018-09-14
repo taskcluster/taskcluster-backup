@@ -45,6 +45,10 @@ defaults:
     table2: !env VERIFY_TABLE_2
     diffs:  !env:bool VERIFY_DIFFS
 
+  monitoring:
+    project: taskcluster-backups
+    enable: false
+
 production:
   concurrency: 30
 
@@ -56,5 +60,3 @@ production:
 
 test:
   concurrency: 30
-  monitoring:
-    enable: false
