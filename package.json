@@ -14,7 +14,7 @@
     "bluebird": "^3.4.7",
     "commander": "^2.15.1",
     "event-stream": "3.3.4",
-    "fast-azure-storage": "^2.1.0",
+    "fast-azure-storage": "^2.3.1",
     "fast-json-patch": "^2.0.6",
     "listr": "^0.13.0",
     "lodash": "^4.17.4",
