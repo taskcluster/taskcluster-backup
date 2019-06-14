@@ -142,8 +142,9 @@ let load = loader({
       };
 
       let diffs = [];
-      let table1 = await fetchRows(cfg.verify.table1, table1);
-      let table2 = await fetchRows(cfg.verify.table2, table2);
+      let table1, table2;
+      table1 = await fetchRows(cfg.verify.table1, table1);
+      table2 = await fetchRows(cfg.verify.table2, table2);
 
       for (let t of _.intersection(_.keys(table1), _.keys(table2))) {
         let diff = jsonpatch.compare(table1[t], table2[t]);
